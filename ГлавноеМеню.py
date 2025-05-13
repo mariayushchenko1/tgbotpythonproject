@@ -1,5 +1,8 @@
 from telegram import ReplyKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from зарядка import start_workout, get_handlers
+from mood_tracker import setup as setup_mood_tracker
+
 
 # создаем сами кнопки
 START_KEYBOARD = ReplyKeyboardMarkup(
@@ -34,10 +37,9 @@ async def handle_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # далее кнопки, которые мы выбираем
 
     if text == "Зарядка":
-        await update.message.reply_text(
-            "Вы в разделе зарядки",
-            reply_markup=CHARGE_KEYBOARD
-        )
+        await start_workout(update, context)
+
+
     elif text == "Трекер сна":
         await update.message.reply_text(
             "Вы в трекере сна",
@@ -62,8 +64,13 @@ async def handle_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await start(update, context)
 
 
+
 def main():
     application = Application.builder().token("7757821288:AAFO6UALvFmOVyCD7Txdi9IXq0d6541DnL0").build()
+
+    application.add_handlers(get_handlers())
+
+    setup_mood_tracker(application)
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_menu))
@@ -71,5 +78,8 @@ def main():
     application.run_polling()
 
 
+
 if __name__ == "__main__":
     main()
+
+
