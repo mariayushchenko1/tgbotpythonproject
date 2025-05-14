@@ -8,7 +8,7 @@ from telegram.ext import ( # расширенная
     CallbackContext
 )
 from datetime import datetime, timedelta # для дат (выбор дней недели)
-import logging # для логирования (отслеживания действий и их "запоминания")
+import logging # для логирования
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
     MessageHandler,
@@ -22,7 +22,7 @@ from telegram.ext import (
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Хдля хранения данных, которые пользователь нам оставит
+# Хдля хранения данных пользователя
 user_data = {}
 
 
@@ -41,7 +41,7 @@ def get_keyboard(buttons):
 
 DAYS_KEYBOARD = get_keyboard([["Пн", "Вт", "Ср"], ["Чт", "Пт", "Сб"], ["Вс", "Готово"]]) # основная
 YES_NO_KEYBOARD = get_keyboard([["Да", "Нет"]]) # после вопроса
-MAIN_KEYBOARD = get_keyboard([["Назад", "Статистика"]]) # после выбора дней
+MAIN_KEYBOARD = get_keyboard([["Назад", "статистика"]]) # после выбора дней
 
 
 # преобразовываем дни в числа
@@ -125,56 +125,46 @@ async def ask_workout_status(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 # обрабатываем ответ
 async def process_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    today = datetime.now().strftime("%Y-%m-%d")
-    answer = update.message.text.lower()
+    user_id = update.effective_user.id # ID пользователя
+    today = datetime.now().strftime("%Y-%m-%d") # сегодняшняя дата
+    answer = update.message.text.lower() # текст ответа пользователя
 
-    user_data[user_id].completed[today] = (answer == "да")
+    user_data[user_id].completed[today] = (answer == "да") # сохр рез на текушую дату; преобразование да в True
 
+# ответ бота в зависимости от ответа пользователя
     await update.message.reply_text(
-        "✅ Отлично! Так держать!" if answer == "да" else "😊 Завтра получится лучше!",
+        "Так держать!" if answer == "да" else "Завтра получится лучше!",
         reply_markup=MAIN_KEYBOARD
     )
 
 
+# показ статистики
 async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Показать статистику"""
     user_id = update.effective_user.id
-    if user_id not in user_data or not user_data[user_id].completed:
+    if user_id not in user_data or not user_data[user_id].completed: # проверяем есть ли в словаре данные пользователя
         await update.message.reply_text("У тебя еще нет статистики!")
         return
 
     user = user_data[user_id]
-    total = len(user.completed)
-    done = sum(user.completed.values())
-    missed = total - done
+    total = len(user.completed) # всего отмеченных дней
+    done = sum(user.completed.values()) # сделанные трени (True)
+    missed = total - done # пропущенные (False)
 
+# само сообщение от бота
     stats = (
         "📊 Твоя статистика:\n"
         f"• Всего дней: {total}\n"
         f"• Выполнено: {done}\n"
         f"• Пропущено: {missed}\n\n"
-        f"{'🔥 Идеально!' if done == total else '💪 Продолжай работать!'}"
+        "• Продолжай работать!"
     )
 
     await update.message.reply_text(stats)
 
-
+# список обработчиков для файла ГМ
 def get_handlers():
-    """Возвращает обработчики для главного файла"""
     return [
-        MessageHandler(filters.Text(["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс", "Готово"]), process_days),
-        MessageHandler(filters.Text(["Да", "Нет"]), process_answer),
-        MessageHandler(filters.Text(["Статистика"]), show_stats),
+        MessageHandler(filters.Text(["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс", "Готово"]), process_days), # клав выбор дней
+        MessageHandler(filters.Text(["Да", "Нет"]), process_answer), # ответ на вопрос
+        MessageHandler(filters.Text(["статистика"]), show_stats), # статистиика
     ]
-
-
-async def test_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Тестовая команда для проверки напоминаний"""
-    user_id = update.effective_user.id
-    # Создаем искусственный контекст для напоминания
-    fake_context = CallbackContext.from_update(update, context)
-    fake_context.job.context = user_id  # Устанавливаем user_id для контекста
-    await send_reminder(fake_context)
-    await update.message.reply_text("✅ Тестовое напоминание отправлено!")
-
