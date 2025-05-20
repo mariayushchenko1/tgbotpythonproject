@@ -273,19 +273,12 @@ def init_db():
     conn.commit()
     conn.close()
 
-
-# запуск бота
-def main():
-    load_dotenv()
-    TOKEN = os.getenv("BOT_TOKEN")
-
-    init_db()
-    app = Application.builder().token(TOKEN).build()
-
-    # команды
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-
+def setup(application):
+    init_db()  # инициализация базы данных
+    # регистрация обработчиков сообщений
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    
     # для напоминаний
     notification_conv = ConversationHandler(
         entry_points=[CommandHandler("напоминания", set_notifications)],
@@ -295,11 +288,4 @@ def main():
         },
         fallbacks=[CommandHandler("отмена", cancel_notifications)],
     )
-    app.add_handler(notification_conv)
-
-    print("Бот запущен!")
-    app.run_polling()
-
-
-if __name__ == "__main__":
-    main()
+    application.add_handler(notification_conv)
