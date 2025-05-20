@@ -2,6 +2,7 @@ from telegram import ReplyKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from зарядка import start_workout, get_handlers
 from mood_tracker import setup as setup_mood_tracker
+from sleep_tracker import setup as setup_sleep_tracker
 
 
 # создаем сами кнопки
@@ -66,12 +67,15 @@ async def handle_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
-    application = Application.builder().token("7757821288:AAFO6UALvFmOVyCD7Txdi9IXq0d6541DnL0").build()
+    load_dotenv()
+    TOKEN = os.getenv("BOT_TOKEN")
+    application = Application.builder().token(TOKEN).build()
 
     application.add_handlers(get_handlers())
 
     setup_mood_tracker(application)
-
+    setup_sleep_tracker(application)
+    
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_menu))
 
